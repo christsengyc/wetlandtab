@@ -165,7 +165,6 @@
         const ROWS = 20; 
         let dynamicGridSize = 0; 
         
-        // 地圖狀態: 0=泥灘(空), 1=紅樹林, 2=水流
         let grid = []; 
         let isDragging = false;
         
@@ -180,6 +179,9 @@
             bioPercent: 0,
             milestones: { start: false, firstClear: false, halfway: false, finish: false }
         };
+
+        // 新增一個變數來保存當前的打字機計時器 ID
+        let currentTypeWriterInterval = null; 
 
         // 畫布尺寸計算 (確保響應式)
         function resizeCanvas() {
@@ -216,10 +218,7 @@
             if (row >= 0 && row < ROWS && col >= 0 && col < COLS) {
                 if (grid[row][col] === 1) {
                     grid[row][col] = 0;
-                    if (!state.milestones.firstClear) {
-                        setDialogue('fish', "哎唷！動作挺俐落的嘛。不過別只清這裡，要打通到右邊去！");
-                        state.milestones.firstClear = true;
-                    }
+                    // 在這裡不再觸發對話，而是交給 checkStoryTrigger 統一管理
                     updateSimulation(); 
                 }
             }
@@ -230,12 +229,12 @@
             for (let r = 0; r < ROWS; r++) {
                 let row = [];
                 for (let c = 0; c < COLS; c++) {
+                    // 確保最左邊 2 列是空的泥灘
                     if (c < 2) { row.push(0); } else { row.push(Math.random() < 0.85 ? 1 : 0); }
                 }
                 grid.push(row);
             }
 
-            // 事件監聽 (滑鼠與觸控)
             canvas.addEventListener('mousedown', () => isDragging = true);
             canvas.addEventListener('mouseup', () => isDragging = false);
             canvas.addEventListener('mousemove', handleInput);
@@ -244,6 +243,7 @@
             canvas.addEventListener('touchmove', handleInput, { passive: false });
             window.addEventListener('resize', resizeCanvas);
             resizeCanvas(); // 首次執行
+            setDialogue('crab', "救命啊！紅樹林長得太密了，潮水都進不來... 顧問，快幫幫我們！"); // 遊戲開始時的初始對話
         }
 
         // 畫布繪圖 (渲染網格、水流、紅樹林)
@@ -261,10 +261,17 @@
                         ctx.fillStyle = "#2ecc71"; ctx.fillRect(x + G * 0.1, y + G * 0.1, G * 0.8, G * 0.8);
                     } else if (grid[r][c] === 2) {
                         ctx.fillStyle = "#3498db"; ctx.fillRect(x, y, G, G);
-                        if (state.bioPercent > 60 && Math.random() > 0.98) {
-                            ctx.font = `${G * 0.6}px Arial`; ctx.fillText("🦀", x, y + G * 0.8);
-                        } else if (state.bioPercent > 80 && Math.random() > 0.98) {
-                            ctx.font = `${G * 0.6}px Arial`; ctx.fillText("🐦", x, y + G * 0.8);
+                        // 動物只在水流區域，並且生物多樣性達到一定程度時隨機出現
+                        if (state.bioPercent > 60 && Math.random() < 0.005) { // 降低機率，避免畫面過於混亂
+                            ctx.font = `${G * 0.6}px Arial`; 
+                            ctx.textAlign = 'center'; // 居中繪製
+                            ctx.textBaseline = 'middle';
+                            ctx.fillText("🦀", x + G / 2, y + G / 2);
+                        } else if (state.bioPercent > 80 && Math.random() < 0.003) { // 更高門檻，更低機率
+                            ctx.font = `${G * 0.6}px Arial`;
+                            ctx.textAlign = 'center';
+                            ctx.textBaseline = 'middle';
+                            ctx.fillText("🐦", x + G / 2, y + G / 2);
                         }
                     } else {
                         ctx.fillStyle = "#8d6e63"; ctx.fillRect(x, y, G, G);
@@ -300,7 +307,7 @@
 
             updateUI(flowScore, bioScore);
             draw();
-            checkStoryTrigger(flowScore, bioScore);
+            checkStoryTrigger(flowScore, bioScore); // 每次模擬更新後檢查劇情
         }
         
         // UI 分數更新
@@ -313,13 +320,27 @@
             document.getElementById('bio-text').innerText = bio + "%";
         }
 
-        // 劇情觸發
+        // 劇情觸發邏輯優化
         function checkStoryTrigger(flow, bio) {
+            // 初始對話已在 initGame 觸發
+
+            // 第一次清除紅樹林 (流程分數不需很高)
+            // 這裡的觸發條件需要調整，因為 `firstClear` 是根據單次點擊觸發的，
+            // 更好的方式是檢查地圖上的紅樹林數量變化。
+            // 為了簡化，我們可以在 flow 達到一個低門檻時觸發，假設這代表有初步清除。
+            if (flow > 5 && !state.milestones.firstClear) {
+                setDialogue('fish', "哎唷！動作挺俐落的嘛。不過別只清這裡，要打通到右邊去！");
+                state.milestones.firstClear = true;
+            }
+
+            // 中期對話
             if (flow > 30 && !state.milestones.halfway) {
                 setDialogue('oyster', "感覺到了！新鮮的海水流進來了，孩子們，張開殼準備吃飯囉！");
                 state.milestones.halfway = true;
             }
-            if (flow > 70 && bio > 60 && !state.milestones.finish) {
+
+            // 最終通關對話
+            if (flow >= 100 && bio >= 100 && !state.milestones.finish) { // 確保 100% 才觸發
                 setDialogue('bird', "哼，這才像話嘛。水通了，魚蝦多了，我也能勉強在這裡落腳了。做得不錯。");
                 state.milestones.finish = true;
                 setTimeout(() => {
@@ -328,24 +349,35 @@
             }
         }
 
-        // 對話框文字顯示
+        // 優化後的對話框文字顯示函數
         function setDialogue(charKey, text) {
+            // 清除之前的計時器，避免文字疊加
+            if (currentTypeWriterInterval) {
+                clearInterval(currentTypeWriterInterval);
+                currentTypeWriterInterval = null;
+            }
+
             const char = characters[charKey];
             const avatarEl = document.getElementById('char-avatar');
             const nameEl = document.getElementById('char-name');
+            
             avatarEl.innerText = char.icon;
             avatarEl.style.borderColor = char.color;
             nameEl.innerText = char.name;
             nameEl.style.color = char.color;
+            
             const textEl = document.getElementById('char-text');
-            textEl.innerText = "";
+            textEl.innerText = ""; // 確保在開始打字前清空內容
             let i = 0;
-            const typeWriter = setInterval(() => {
+
+            // 儲存新的計時器 ID
+            currentTypeWriterInterval = setInterval(() => {
                 if (i < text.length) {
                     textEl.innerText += text.charAt(i);
                     i++;
                 } else {
-                    clearInterval(typeWriter);
+                    clearInterval(currentTypeWriterInterval);
+                    currentTypeWriterInterval = null; // 清除 ID
                 }
             }, 30);
         }
