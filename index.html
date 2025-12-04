@@ -130,6 +130,13 @@
         #win-overlay {
             display: none;
         }
+        /* 確保遊戲主體在開始前是隱藏的 */
+        #game-main {
+            display: none;
+            flex-direction: column; /* 保持與 body 的 flex-direction 一致 */
+            align-items: center;
+            width: 100%;
+        }
 
         /* 手機佈局調整 */
         @media (max-width: 768px) {
@@ -162,7 +169,7 @@
         </div>
     </div>
 
-    <div id="game-main" style="display: none;">
+    <div id="game-main">
         <div id="hud-header">
             <div class="stat-group">
                 <div class="stat-label"><span>🌊 潮水順暢度</span> <span id="flow-text">0%</span></div>
@@ -196,8 +203,7 @@
             <div class="dialogue-content">
                 <div class="char-name" id="char-name">小招 (招潮蟹)</div>
                 <div class="dialogue-text" id="char-text">
-                    救命啊！紅樹林長得太密了，潮水都進不來... 顧問，快幫幫我們！
-                </div>
+                    </div>
             </div>
         </div>
     </div>
@@ -224,7 +230,8 @@
         let state = {
             flowPercent: 0,
             bioPercent: 0,
-            milestones: { start: false, firstClear: false, halfway: false, finish: false }
+            // 由於不需要多段前導對話，milestones 僅用於遊戲內部的劇情觸發
+            milestones: { firstClear: false, halfway: false, finish: false }
         };
 
         let currentTypeWriterInterval = null; 
@@ -238,7 +245,7 @@
             updateSimulation(); 
         }
 
-        // 取得滑鼠/觸控座標 (與前版相同)
+        // 取得滑鼠/觸控座標
         function getCoordsFromEvent(e) {
             let clientX, clientY;
             if (e.touches && e.touches.length > 0) {
@@ -256,7 +263,7 @@
             return { row, col };
         }
 
-        // 處理清除操作 (與前版相同)
+        // 處理清除操作
         function handleInput(e) {
             if (isDragging && e.cancelable) e.preventDefault(); 
             if (!isDragging) return;
@@ -269,48 +276,7 @@
             }
         }
 
-        // --- 新增：遊戲開始前導對話流程 (使用定時器確保順序) ---
-        function startIntroDialogue() {
-            let delay = 0;
-            const lineDelay = 4500; 
-
-            // Line 1: 小招 (招潮蟹) - 設置場景
-            setTimeout(() => {
-                setDialogue('crab', "哇！顧問先生/小姐，您看！我們家旁邊的樹長得快把家都擠滿了，我都快不能走路了！");
-            }, delay);
-            delay += lineDelay;
-
-            // Line 2: 牡蠣媽媽 (Oyster Mom) - 介紹問題的本質
-            setTimeout(() => {
-                setDialogue('oyster', "您是我們請來的生態顧問吧？以前大家說紅樹林是好事，但現在它們太多、太密了，擋住潮水，我們都快沒東西吃了。");
-            }, delay);
-            delay += lineDelay;
-
-            // Line 3: 高蹺鴴 (Stilt) - 強調後果與遊戲意義
-            setTimeout(() => {
-                setDialogue('bird', "哼，人類總愛多事。紅樹林要是多到擋住潮水，這裡的水就會變臭，大家都會死光光。我們需要的是『平衡』，不是雜亂！");
-            }, delay);
-            delay += lineDelay;
-
-            // Line 4: 烏魚 (Mullet) - 提出遊戲目標（為了解決自己的利益）
-            setTimeout(() => {
-                setDialogue('fish', "就是說啊！潮水進不來，我的魚卵和食物怎麼辦？顧問，您得快點幫我們『清出一條路』來！");
-            }, delay);
-            delay += lineDelay;
-
-            // Line 5: 小招 (招潮蟹) - 說明遊戲規則
-            setTimeout(() => {
-                setDialogue('crab', "請您使用『生態鏟』🛠️！只要點擊並拖曳畫面中的綠色方塊（紅樹林），就能幫我們清理出通道！");
-            }, delay);
-            delay += lineDelay;
-            
-            // Line 6: 牡蠣媽媽 (Oyster Mom) - 最終鼓勵/目標
-            setTimeout(() => {
-                setDialogue('oyster', "讓潮水順暢度（左邊藍色條）和生態多樣性（右邊綠色條）都到100%喔！我們一家就靠您了！");
-            }, delay);
-        }
-        
-        // --- 遊戲啟動函數：從這裡開始遊戲 ---
+        // --- 遊戲啟動函數：從這裡開始遊戲邏輯 ---
         function startGame() {
             // 初始化網格
             for (let r = 0; r < ROWS; r++) {
@@ -330,8 +296,8 @@
             window.addEventListener('resize', resizeCanvas);
             resizeCanvas(); // 首次執行
 
-            // 觸發前導對話
-            startIntroDialogue(); 
+            // *** 恢復單一句開場對話 ***
+            setDialogue('crab', "救命啊！紅樹林長得太密了，潮水都進不來... 顧問，快幫幫我們！"); 
         }
 
         // --- 初始化函數：僅綁定開始按鈕 ---
@@ -342,7 +308,6 @@
                 gameMainEl.style.display = 'flex'; // 顯示遊戲主體
                 startGame(); // 啟動遊戲邏輯
             });
-
              // 確保在綁定事件後，才根據當前視窗大小初始化畫布
             resizeCanvas(); 
         }
@@ -423,7 +388,7 @@
         // 劇情觸發邏輯優化 (與前版相同)
         function checkStoryTrigger(flow, bio) {
             if (flow > 5 && !state.milestones.firstClear) {
-                setDialogue('fish', "哎唷！潮水終於動了一點！快點！這樣還不夠，要打通到右邊去！");
+                setDialogue('fish', "哎唷！動作挺俐落的嘛。不過別只清這裡，要打通到右邊去！");
                 state.milestones.firstClear = true;
             }
             if (flow > 30 && !state.milestones.halfway) {
