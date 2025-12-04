@@ -57,7 +57,7 @@
             max-width: 1000px;
             margin-top: 10px;
             padding: 5px 10px;
-            background-color: #5d6d7e; /* 較暗的底色 */
+            background-color: #5d6d7e; 
             border-radius: 8px;
             font-size: 0.8rem;
             display: flex;
@@ -77,7 +77,7 @@
             position: relative;
             width: 95%;
             max-width: 1000px;
-            margin: 10px auto; /* 調整 margin 配合圖例條 */
+            margin: 10px auto; 
             border: 4px solid #95a5a6;
             cursor: crosshair;
             flex-grow: 1; 
@@ -223,7 +223,7 @@
         </div>
     </div>
     <script>
-        // --- 遊戲邏輯與初始化 (與前版相同) ---
+        // --- 遊戲邏輯與初始化 ---
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         const gameMainEl = document.getElementById('game-main');
@@ -245,7 +245,12 @@
         let state = {
             flowPercent: 0,
             bioPercent: 0,
-            milestones: { firstClear: false, halfway: false, finish: false }
+            milestones: { 
+                firstClear: false, 
+                halfway: false, 
+                finish: false,
+                hintFlowObstructionShown: false 
+            }
         };
 
         let currentTypeWriterInterval = null; 
@@ -284,8 +289,14 @@
             const { row, col } = getCoordsFromEvent(e);
             if (row >= 0 && row < ROWS && col >= 0 && col < COLS) {
                 if (grid[row][col] === 1) {
-                    grid[row][col] = 0;
+                    grid[row][col] = 0; // Cleared mangrove to mud
                     updateSimulation(); 
+
+                    // 新增的引導提示邏輯：潮水順暢度低於 10% 時顯示提示
+                    if (state.flowPercent < 10 && !state.milestones.hintFlowObstructionShown) {
+                        setDialogue('crab', "請點擊潮水讓水流動"); // 使用者指定的提示文字
+                        state.milestones.hintFlowObstructionShown = true;
+                    }
                 }
             }
         }
@@ -308,7 +319,8 @@
             window.addEventListener('resize', resizeCanvas);
             resizeCanvas(); 
 
-            setDialogue('crab', "救命啊！紅樹林長得太密了，潮水都進不來... 顧問，快幫幫我們！"); 
+            // 初始對話 (已修改)
+            setDialogue('crab', "救命！紅樹林長得太密了，潮水進不來！！"); 
         }
 
         // 初始化函數
@@ -357,9 +369,11 @@
         
         // 水流模擬與分數計算
         function updateSimulation() {
+            // 重置水流
             for (let r = 0; r < ROWS; r++) { for (let c = 0; c < COLS; c++) { if (grid[r][c] === 2) grid[r][c] = 0; } }
             let queue = [];
             let wetCount = 0;
+            // 從最左邊開始注入水流
             for (let r = 0; r < ROWS; r++) { if (grid[r][0] === 0) { queue.push({r: r, c: 0}); grid[r][0] = 2; } }
 
             while (queue.length > 0) {
@@ -373,6 +387,7 @@
                     }
                 }
             }
+            // 計算分數
             let flowScore = Math.min(100, Math.floor((wetCount / (COLS * ROWS * 0.7)) * 100)); 
             let bioScore = 0;
             if (flowScore > 20) bioScore = Math.floor(flowScore * 0.8);
@@ -394,18 +409,23 @@
             document.getElementById('bio-text').innerText = bio + "%";
         }
 
-        // 劇情觸發邏輯
+        // 劇情觸發邏輯 (對話已修改)
         function checkStoryTrigger(flow, bio) {
+            // 由於預設有 2 列是泥灘地 (0, 1 行)，預設潮水順暢度可能超過 5%。
+            // 這裡保留第一個里程碑 (flow > 5) 作為確認玩家開始清除了，
+            // 且不與新的 < 10% 提示衝突。
             if (flow > 5 && !state.milestones.firstClear) {
                 setDialogue('fish', "哎唷！動作挺俐落的嘛。不過別只清這裡，要打通到右邊去！");
                 state.milestones.firstClear = true;
             }
             if (flow > 30 && !state.milestones.halfway) {
-                setDialogue('oyster', "感覺到了！新鮮的海水流進來了，孩子們，張開殼準備吃飯囉！多虧顧問您了。");
+                // 第二段對話 (已修改)
+                setDialogue('oyster', "新鮮的海水流進來了！！終於看到舒服的家園了！！");
                 state.milestones.halfway = true;
             }
             if (flow >= 100 && bio >= 100 && !state.milestones.finish) { 
-                setDialogue('bird', "哼，這才像話嘛。水通了，魚蝦多了，我也能勉強在這裡落腳了。做得不錯。");
+                // 完成對話 (已修改)
+                setDialogue('bird', "水來了，食物回來了，我們也有舒服的空間生活了，不錯不錯！");
                 state.milestones.finish = true;
                 setTimeout(() => {
                     document.getElementById('win-overlay').style.display = 'flex';
