@@ -261,6 +261,9 @@
             bird: { name: "高蹺鴴", icon: "🐦", color: "#e91e63" },
             fish: { name: "烏魚", icon: "🐟", color: "#95a5a6" }
         };
+        
+        let hintTimerId = null; // 儲存計時器 ID
+
         let state = {
             flowPercent: 0,
             bioPercent: 0,
@@ -268,7 +271,8 @@
                 firstClear: false, 
                 halfway: false, 
                 finish: false,
-                hintFlowObstructionShown: false // 提示追蹤
+                hintFlowObstructionShown: false, // 提示是否已顯示
+                hintTimerActive: false, // 計時器是否啟動中
             }
         };
 
@@ -312,15 +316,28 @@
             if (isDragging && e.cancelable) e.preventDefault(); 
             if (!isDragging) return;
             const { row, col } = getCoordsFromEvent(e);
+            
             if (row >= 0 && row < ROWS && col >= 0 && col < COLS) {
                 if (grid[row][col] === 1) {
                     grid[row][col] = 0; // Cleared mangrove to mud
-                    updateSimulation(); 
+                    updateSimulation(); // Recalculates flowPercent immediately
 
-                    // 新增的引導提示邏輯：潮水順暢度低於 10% 時顯示提示 Modal
-                    if (state.flowPercent < 10 && !state.milestones.hintFlowObstructionShown) {
-                        showHintModal(); 
-                        state.milestones.hintFlowObstructionShown = true;
+                    // 新增的延遲引導提示邏輯
+                    if (state.flowPercent < 10 && 
+                        !state.milestones.hintFlowObstructionShown &&
+                        !state.milestones.hintTimerActive) 
+                    {
+                        state.milestones.hintTimerActive = true;
+                        
+                        hintTimerId = setTimeout(() => {
+                            // 3秒後檢查流量，如果仍低於10%，則顯示提示
+                            if (state.flowPercent < 10) {
+                                showHintModal(); 
+                                state.milestones.hintFlowObstructionShown = true;
+                            }
+                            state.milestones.hintTimerActive = false;
+                            hintTimerId = null;
+                        }, 3000); // 3秒延遲
                     }
                 }
             }
@@ -439,6 +456,13 @@
 
         // 劇情觸發邏輯
         function checkStoryTrigger(flow, bio) {
+            // NEW: 檢查是否需要取消延遲提示計時器
+            if (flow >= 10 && state.milestones.hintTimerActive) {
+                clearTimeout(hintTimerId);
+                state.milestones.hintTimerActive = false;
+                hintTimerId = null;
+            }
+            
             if (flow > 5 && !state.milestones.firstClear) {
                 setDialogue('fish', "哎唷！動作挺俐落的嘛。不過別只清這裡，要打通到右邊去！");
                 state.milestones.firstClear = true;
