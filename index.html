@@ -51,12 +51,33 @@
         #hud-header h3 { font-size: 1.1rem; margin: 0; padding: 0 10px; }
         #hud-header small { font-size: 0.75rem; display: block; }
 
+        /* 地圖圖例條 */
+        #map-legend {
+            width: 95%;
+            max-width: 1000px;
+            margin-top: 10px;
+            padding: 5px 10px;
+            background-color: #5d6d7e; /* 較暗的底色 */
+            border-radius: 8px;
+            font-size: 0.8rem;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            flex-wrap: wrap;
+        }
+        .legend-item-inline { display: flex; align-items: center; margin: 2px 5px; }
+        .color-dot { width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; }
+        .dot-green { background-color: #2ecc71; }
+        .dot-blue { background-color: #3498db; }
+        .dot-brown { background-color: #8d6e63; }
+
         /* 遊戲主畫面 */
         #game-container {
             position: relative;
             width: 95%;
             max-width: 1000px;
-            margin: 20px auto;
+            margin: 10px auto; /* 調整 margin 配合圖例條 */
             border: 4px solid #95a5a6;
             cursor: crosshair;
             flex-grow: 1; 
@@ -117,12 +138,6 @@
         #info-content h2 { text-align: center; color: var(--accent-green); margin-top: 0; }
         #info-content p { font-size: 1rem; line-height: 1.6; }
         
-        .legend-item { display: flex; align-items: center; margin-bottom: 10px; font-weight: bold; }
-        .color-box { width: 25px; height: 25px; margin-right: 10px; border-radius: 5px; }
-        .green { background-color: #2ecc71; }
-        .brown { background-color: #8d6e63; }
-        .blue { background-color: #3498db; }
-
         .btn { background-color: var(--accent-blue); color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; margin-top: 15px; font-size: 1rem; transition: background-color 0.3s; }
         .btn:hover { background-color: #2980b9; }
 
@@ -133,7 +148,7 @@
         /* 確保遊戲主體在開始前是隱藏的 */
         #game-main {
             display: none;
-            flex-direction: column; /* 保持與 body 的 flex-direction 一致 */
+            flex-direction: column; 
             align-items: center;
             width: 100%;
         }
@@ -143,6 +158,7 @@
             #hud-header { flex-direction: column; gap: 8px; }
             .stat-group { width: 90%; }
             #info-content { padding: 15px; }
+            #map-legend { font-size: 0.75rem; justify-content: space-around; }
         }
     </style>
 </head>
@@ -151,19 +167,12 @@
     <div id="info-overlay" class="overlay">
         <div id="info-content">
             <h2>香山濕地生態重現</h2>
-            <p><strong>遊戲目標：</strong> 幫助香山濕地恢復「生態平衡」。</p>
-            <p>紅樹林（海茄苳）雖然能保護海岸，但如果生長得太過茂密，反而會擋住潮水的流動，使得泥灘上的其他生物（如招潮蟹、牡蠣）無法獲得食物，最終破壞棲地。</p>
+            <p><strong>遊戲目標：</strong> 幫助香山濕地恢復生態平衡。</p>
+            <p>紅樹林雖然能保護海岸，但如果長太茂密，反而擋住潮水，讓泥灘生物跑走！！</p>
 
-            <h3>地圖元素說明</h3>
-            <div class="legend-item"><div class="color-box green"></div> 綠色：**紅樹林** 🌳 (需清除的障礙)</div>
-            <div class="legend-item"><div class="color-box brown"></div> 棕色：**泥灘** (招潮蟹的家/可清除的區域)</div>
-            <div class="legend-item"><div class="color-box blue"></div> 藍色：**潮水** (順利流動的海水)</div>
-
-            <h3>操作規則</h3>
-            <p>請使用 **「生態鏟」🛠️** (滑鼠或手指)，點擊並拖曳畫面中的**綠色紅樹林**，開闢一條從左邊到右邊的暢通水道。</p>
-
-            <h3>通關條件</h3>
-            <p>請讓潮水順暢度 (🌊) 和生態多樣性 (🦀) 都達到 **100%**！</p>
+            <h3>規則</h3>
+            <p>用手指點擊拖曳畫面的**綠色紅樹林**，開闢從左到右的暢通水道。</p>
+            <p>讓上面的**潮水順暢度** (🌊) 和**生態多樣性** (🦀) 都達到 **100%**，就過關！</p>
             
             <button class="btn" id="start-game-btn">開始遊戲</button>
         </div>
@@ -189,6 +198,12 @@
             </div>
         </div>
 
+        <div id="map-legend">
+            <div class="legend-item-inline"><div class="color-dot dot-green"></div> 綠色：紅樹林 (需清除)</div>
+            <div class="legend-item-inline"><div class="color-dot dot-blue"></div> 藍色：潮水 (要讓它流動)</div>
+            <div class="legend-item-inline"><div class="color-dot dot-brown"></div> 棕色：泥灘地 (可讓水流過)</div>
+        </div>
+
         <div id="game-container">
             <canvas id="gameCanvas"></canvas>
             <div id="win-overlay" class="overlay">
@@ -208,7 +223,7 @@
         </div>
     </div>
     <script>
-        // --- 遊戲邏輯與初始化 ---
+        // --- 遊戲邏輯與初始化 (與前版相同) ---
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         const gameMainEl = document.getElementById('game-main');
@@ -230,7 +245,6 @@
         let state = {
             flowPercent: 0,
             bioPercent: 0,
-            // 由於不需要多段前導對話，milestones 僅用於遊戲內部的劇情觸發
             milestones: { firstClear: false, halfway: false, finish: false }
         };
 
@@ -276,9 +290,8 @@
             }
         }
 
-        // --- 遊戲啟動函數：從這裡開始遊戲邏輯 ---
+        // 遊戲啟動函數
         function startGame() {
-            // 初始化網格
             for (let r = 0; r < ROWS; r++) {
                 let row = [];
                 for (let c = 0; c < COLS; c++) {
@@ -286,7 +299,6 @@
                 }
                 grid.push(row);
             }
-            // 綁定事件監聽器
             canvas.addEventListener('mousedown', () => isDragging = true);
             canvas.addEventListener('mouseup', () => isDragging = false);
             canvas.addEventListener('mousemove', handleInput);
@@ -294,25 +306,22 @@
             canvas.addEventListener('touchend', () => isDragging = false);
             canvas.addEventListener('touchmove', handleInput, { passive: false });
             window.addEventListener('resize', resizeCanvas);
-            resizeCanvas(); // 首次執行
+            resizeCanvas(); 
 
-            // *** 恢復單一句開場對話 ***
             setDialogue('crab', "救命啊！紅樹林長得太密了，潮水都進不來... 顧問，快幫幫我們！"); 
         }
 
-        // --- 初始化函數：僅綁定開始按鈕 ---
+        // 初始化函數
         function initGame() {
-             // 綁定開始按鈕事件
             document.getElementById('start-game-btn').addEventListener('click', () => {
-                infoOverlayEl.style.display = 'none'; // 隱藏說明頁面
-                gameMainEl.style.display = 'flex'; // 顯示遊戲主體
-                startGame(); // 啟動遊戲邏輯
+                infoOverlayEl.style.display = 'none'; 
+                gameMainEl.style.display = 'flex'; 
+                startGame(); 
             });
-             // 確保在綁定事件後，才根據當前視窗大小初始化畫布
             resizeCanvas(); 
         }
 
-        // 畫布繪圖 (渲染網格、水流、紅樹林 - 與前版相同)
+        // 畫布繪圖
         function draw() {
              ctx.clearRect(0, 0, canvas.width, canvas.height);
             const G = dynamicGridSize; 
@@ -346,7 +355,7 @@
             }
         }
         
-        // 水流模擬與分數計算 (BFS 演算法 - 與前版相同)
+        // 水流模擬與分數計算
         function updateSimulation() {
             for (let r = 0; r < ROWS; r++) { for (let c = 0; c < COLS; c++) { if (grid[r][c] === 2) grid[r][c] = 0; } }
             let queue = [];
@@ -375,7 +384,7 @@
             checkStoryTrigger(flowScore, bioScore); 
         }
         
-        // UI 分數更新 (與前版相同)
+        // UI 分數更新
         function updateUI(flow, bio) {
             state.flowPercent = flow;
             state.bioPercent = bio;
@@ -385,7 +394,7 @@
             document.getElementById('bio-text').innerText = bio + "%";
         }
 
-        // 劇情觸發邏輯優化 (與前版相同)
+        // 劇情觸發邏輯
         function checkStoryTrigger(flow, bio) {
             if (flow > 5 && !state.milestones.firstClear) {
                 setDialogue('fish', "哎唷！動作挺俐落的嘛。不過別只清這裡，要打通到右邊去！");
@@ -404,7 +413,7 @@
             }
         }
 
-        // 優化後的對話框文字顯示函數 (防文字疊加 - 與前版相同)
+        // 對話框文字顯示函數
         function setDialogue(charKey, text) {
             if (currentTypeWriterInterval) {
                 clearInterval(currentTypeWriterInterval);
