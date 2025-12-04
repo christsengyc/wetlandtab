@@ -22,7 +22,7 @@
             flex-direction: column;
             align-items: center;
             min-height: 100vh;
-            padding-bottom: 70px; /* 預留 Tiiny.host 廣告條的空間 */
+            padding-bottom: 70px; 
             box-sizing: border-box; 
             overflow-y: auto; 
         }
@@ -72,7 +72,7 @@
             background-color: #8d6e63;
         }
 
-        /* 底部對話框 - 正常流動 */
+        /* 底部對話框 */
         #dialogue-box {
             width: 90%;
             max-width: 800px;
@@ -95,71 +95,118 @@
         .char-name { font-weight: bold; font-size: 1rem; margin-bottom: 3px; color: #2c3e50; }
         .dialogue-text { font-size: 0.9rem; }
 
-        /* 勝利畫面覆蓋層 */
-        #win-overlay {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.8); display: none;
+        /* 說明/勝利畫面覆蓋層 (共用樣式) */
+        .overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9); display: flex;
             justify-content: center; align-items: center; flex-direction: column;
             color: white; z-index: 100; text-align: center; padding: 20px;
+            box-sizing: border-box;
+            overflow-y: auto;
         }
-        .btn { background-color: var(--accent-blue); color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; margin-top: 10px; font-size: 1rem; }
+
+        #info-content {
+            background-color: var(--panel-color);
+            border-radius: 15px;
+            padding: 25px;
+            max-width: 90%;
+            width: 500px;
+            text-align: left;
+        }
+        
+        #info-content h2 { text-align: center; color: var(--accent-green); margin-top: 0; }
+        #info-content p { font-size: 1rem; line-height: 1.6; }
+        
+        .legend-item { display: flex; align-items: center; margin-bottom: 10px; font-weight: bold; }
+        .color-box { width: 25px; height: 25px; margin-right: 10px; border-radius: 5px; }
+        .green { background-color: #2ecc71; }
+        .brown { background-color: #8d6e63; }
+        .blue { background-color: #3498db; }
+
+        .btn { background-color: var(--accent-blue); color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; margin-top: 15px; font-size: 1rem; transition: background-color 0.3s; }
+        .btn:hover { background-color: #2980b9; }
+
+        /* 勝利畫面覆蓋層 */
+        #win-overlay {
+            display: none;
+        }
 
         /* 手機佈局調整 */
         @media (max-width: 768px) {
             #hud-header { flex-direction: column; gap: 8px; }
             .stat-group { width: 90%; }
-            #hud-header h3 { font-size: 1rem; }
-            #hud-header small { font-size: 0.7rem; }
-            #dialogue-box { padding: 8px; min-height: 60px; }
-            .char-name { font-size: 0.9rem; }
-            .dialogue-text { font-size: 0.8rem; }
+            #info-content { padding: 15px; }
         }
     </style>
 </head>
 <body>
+    
+    <div id="info-overlay" class="overlay">
+        <div id="info-content">
+            <h2>香山濕地生態重現</h2>
+            <p><strong>遊戲目標：</strong> 幫助香山濕地恢復「生態平衡」。</p>
+            <p>紅樹林（海茄苳）雖然能保護海岸，但如果生長得太過茂密，反而會擋住潮水的流動，使得泥灘上的其他生物（如招潮蟹、牡蠣）無法獲得食物，最終破壞棲地。</p>
 
-    <div id="hud-header">
-        <div class="stat-group">
-            <div class="stat-label"><span>🌊 潮水順暢度</span> <span id="flow-text">0%</span></div>
-            <div class="progress-bar-bg">
-                <div id="flow-bar" class="progress-bar-fill"></div>
-            </div>
-        </div>
-        <div style="text-align: center;">
-            <h3>工具：生態鏟 🛠️</h3>
-            <small>點擊並拖曳清除紅樹林</small>
-        </div>
-        <div class="stat-group">
-            <div class="stat-label"><span>🦀 生態多樣性</span> <span id="bio-text">0%</span></div>
-            <div class="progress-bar-bg">
-                <div id="bio-bar" class="progress-bar-fill"></div>
-            </div>
+            <h3>地圖元素說明</h3>
+            <div class="legend-item"><div class="color-box green"></div> 綠色：**紅樹林** 🌳 (需清除的障礙)</div>
+            <div class="legend-item"><div class="color-box brown"></div> 棕色：**泥灘** (招潮蟹的家/可清除的區域)</div>
+            <div class="legend-item"><div class="color-box blue"></div> 藍色：**潮水** (順利流動的海水)</div>
+
+            <h3>操作規則</h3>
+            <p>請使用 **「生態鏟」🛠️** (滑鼠或手指)，點擊並拖曳畫面中的**綠色紅樹林**，開闢一條從左邊到右邊的暢通水道。</p>
+
+            <h3>通關條件</h3>
+            <p>請讓潮水順暢度 (🌊) 和生態多樣性 (🦀) 都達到 **100%**！</p>
+            
+            <button class="btn" id="start-game-btn">開始遊戲</button>
         </div>
     </div>
 
-    <div id="game-container">
-        <canvas id="gameCanvas"></canvas>
-        <div id="win-overlay" style="display: none;">
-            <h1>🎉 生態復育成功！</h1>
-            <p>潮水恢復流動，香山濕地的朋友們都回來了！</p>
-            <button class="btn" onclick="location.reload()">重新挑戰</button>
+    <div id="game-main" style="display: none;">
+        <div id="hud-header">
+            <div class="stat-group">
+                <div class="stat-label"><span>🌊 潮水順暢度</span> <span id="flow-text">0%</span></div>
+                <div class="progress-bar-bg">
+                    <div id="flow-bar" class="progress-bar-fill"></div>
+                </div>
+            </div>
+            <div style="text-align: center;">
+                <h3>工具：生態鏟 🛠️</h3>
+                <small>點擊並拖曳清除紅樹林</small>
+            </div>
+            <div class="stat-group">
+                <div class="stat-label"><span>🦀 生態多樣性</span> <span id="bio-text">0%</span></div>
+                <div class="progress-bar-bg">
+                    <div id="bio-bar" class="progress-bar-fill"></div>
+                </div>
+            </div>
         </div>
-    </div>
 
-    <div id="dialogue-box">
-        <div class="avatar" id="char-avatar">🦀</div>
-        <div class="dialogue-content">
-            <div class="char-name" id="char-name">小招 (招潮蟹)</div>
-            <div class="dialogue-text" id="char-text">
-                救命啊！紅樹林長得太密了，潮水都進不來... 顧問，快幫幫我們！
+        <div id="game-container">
+            <canvas id="gameCanvas"></canvas>
+            <div id="win-overlay" class="overlay">
+                <h1>🎉 生態復育成功！</h1>
+                <p>潮水恢復流動，香山濕地的朋友們都回來了！</p>
+                <button class="btn" onclick="location.reload()">重新挑戰</button>
+            </div>
+        </div>
+
+        <div id="dialogue-box">
+            <div class="avatar" id="char-avatar">🦀</div>
+            <div class="dialogue-content">
+                <div class="char-name" id="char-name">小招 (招潮蟹)</div>
+                <div class="dialogue-text" id="char-text">
+                    救命啊！紅樹林長得太密了，潮水都進不來... 顧問，快幫幫我們！
+                </div>
             </div>
         </div>
     </div>
-
     <script>
         // --- 遊戲邏輯與初始化 ---
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
+        const gameMainEl = document.getElementById('game-main');
+        const infoOverlayEl = document.getElementById('info-overlay');
         
         const COLS = 40; 
         const ROWS = 20; 
@@ -180,7 +227,6 @@
             milestones: { start: false, firstClear: false, halfway: false, finish: false }
         };
 
-        // 新增一個變數來保存當前的打字機計時器 ID
         let currentTypeWriterInterval = null; 
 
         // 畫布尺寸計算 (確保響應式)
@@ -192,7 +238,7 @@
             updateSimulation(); 
         }
 
-        // 取得滑鼠/觸控座標
+        // 取得滑鼠/觸控座標 (與前版相同)
         function getCoordsFromEvent(e) {
             let clientX, clientY;
             if (e.touches && e.touches.length > 0) {
@@ -210,7 +256,7 @@
             return { row, col };
         }
 
-        // 處理清除操作
+        // 處理清除操作 (與前版相同)
         function handleInput(e) {
             if (isDragging && e.cancelable) e.preventDefault(); 
             if (!isDragging) return;
@@ -218,23 +264,63 @@
             if (row >= 0 && row < ROWS && col >= 0 && col < COLS) {
                 if (grid[row][col] === 1) {
                     grid[row][col] = 0;
-                    // 在這裡不再觸發對話，而是交給 checkStoryTrigger 統一管理
                     updateSimulation(); 
                 }
             }
         }
 
-        // 初始化遊戲 (生成紅樹林地圖)
-        function initGame() {
+        // --- 新增：遊戲開始前導對話流程 (使用定時器確保順序) ---
+        function startIntroDialogue() {
+            let delay = 0;
+            const lineDelay = 4500; 
+
+            // Line 1: 小招 (招潮蟹) - 設置場景
+            setTimeout(() => {
+                setDialogue('crab', "哇！顧問先生/小姐，您看！我們家旁邊的樹長得快把家都擠滿了，我都快不能走路了！");
+            }, delay);
+            delay += lineDelay;
+
+            // Line 2: 牡蠣媽媽 (Oyster Mom) - 介紹問題的本質
+            setTimeout(() => {
+                setDialogue('oyster', "您是我們請來的生態顧問吧？以前大家說紅樹林是好事，但現在它們太多、太密了，擋住潮水，我們都快沒東西吃了。");
+            }, delay);
+            delay += lineDelay;
+
+            // Line 3: 高蹺鴴 (Stilt) - 強調後果與遊戲意義
+            setTimeout(() => {
+                setDialogue('bird', "哼，人類總愛多事。紅樹林要是多到擋住潮水，這裡的水就會變臭，大家都會死光光。我們需要的是『平衡』，不是雜亂！");
+            }, delay);
+            delay += lineDelay;
+
+            // Line 4: 烏魚 (Mullet) - 提出遊戲目標（為了解決自己的利益）
+            setTimeout(() => {
+                setDialogue('fish', "就是說啊！潮水進不來，我的魚卵和食物怎麼辦？顧問，您得快點幫我們『清出一條路』來！");
+            }, delay);
+            delay += lineDelay;
+
+            // Line 5: 小招 (招潮蟹) - 說明遊戲規則
+            setTimeout(() => {
+                setDialogue('crab', "請您使用『生態鏟』🛠️！只要點擊並拖曳畫面中的綠色方塊（紅樹林），就能幫我們清理出通道！");
+            }, delay);
+            delay += lineDelay;
+            
+            // Line 6: 牡蠣媽媽 (Oyster Mom) - 最終鼓勵/目標
+            setTimeout(() => {
+                setDialogue('oyster', "讓潮水順暢度（左邊藍色條）和生態多樣性（右邊綠色條）都到100%喔！我們一家就靠您了！");
+            }, delay);
+        }
+        
+        // --- 遊戲啟動函數：從這裡開始遊戲 ---
+        function startGame() {
+            // 初始化網格
             for (let r = 0; r < ROWS; r++) {
                 let row = [];
                 for (let c = 0; c < COLS; c++) {
-                    // 確保最左邊 2 列是空的泥灘
                     if (c < 2) { row.push(0); } else { row.push(Math.random() < 0.85 ? 1 : 0); }
                 }
                 grid.push(row);
             }
-
+            // 綁定事件監聽器
             canvas.addEventListener('mousedown', () => isDragging = true);
             canvas.addEventListener('mouseup', () => isDragging = false);
             canvas.addEventListener('mousemove', handleInput);
@@ -243,12 +329,27 @@
             canvas.addEventListener('touchmove', handleInput, { passive: false });
             window.addEventListener('resize', resizeCanvas);
             resizeCanvas(); // 首次執行
-            setDialogue('crab', "救命啊！紅樹林長得太密了，潮水都進不來... 顧問，快幫幫我們！"); // 遊戲開始時的初始對話
+
+            // 觸發前導對話
+            startIntroDialogue(); 
         }
 
-        // 畫布繪圖 (渲染網格、水流、紅樹林)
+        // --- 初始化函數：僅綁定開始按鈕 ---
+        function initGame() {
+             // 綁定開始按鈕事件
+            document.getElementById('start-game-btn').addEventListener('click', () => {
+                infoOverlayEl.style.display = 'none'; // 隱藏說明頁面
+                gameMainEl.style.display = 'flex'; // 顯示遊戲主體
+                startGame(); // 啟動遊戲邏輯
+            });
+
+             // 確保在綁定事件後，才根據當前視窗大小初始化畫布
+            resizeCanvas(); 
+        }
+
+        // 畫布繪圖 (渲染網格、水流、紅樹林 - 與前版相同)
         function draw() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+             ctx.clearRect(0, 0, canvas.width, canvas.height);
             const G = dynamicGridSize; 
             for (let r = 0; r < ROWS; r++) {
                 for (let c = 0; c < COLS; c++) {
@@ -261,13 +362,12 @@
                         ctx.fillStyle = "#2ecc71"; ctx.fillRect(x + G * 0.1, y + G * 0.1, G * 0.8, G * 0.8);
                     } else if (grid[r][c] === 2) {
                         ctx.fillStyle = "#3498db"; ctx.fillRect(x, y, G, G);
-                        // 動物只在水流區域，並且生物多樣性達到一定程度時隨機出現
-                        if (state.bioPercent > 60 && Math.random() < 0.005) { // 降低機率，避免畫面過於混亂
+                        if (state.bioPercent > 60 && Math.random() < 0.005) { 
                             ctx.font = `${G * 0.6}px Arial`; 
-                            ctx.textAlign = 'center'; // 居中繪製
+                            ctx.textAlign = 'center'; 
                             ctx.textBaseline = 'middle';
                             ctx.fillText("🦀", x + G / 2, y + G / 2);
-                        } else if (state.bioPercent > 80 && Math.random() < 0.003) { // 更高門檻，更低機率
+                        } else if (state.bioPercent > 80 && Math.random() < 0.003) { 
                             ctx.font = `${G * 0.6}px Arial`;
                             ctx.textAlign = 'center';
                             ctx.textBaseline = 'middle';
@@ -281,7 +381,7 @@
             }
         }
         
-        // 水流模擬與分數計算 (BFS 演算法)
+        // 水流模擬與分數計算 (BFS 演算法 - 與前版相同)
         function updateSimulation() {
             for (let r = 0; r < ROWS; r++) { for (let c = 0; c < COLS; c++) { if (grid[r][c] === 2) grid[r][c] = 0; } }
             let queue = [];
@@ -307,10 +407,10 @@
 
             updateUI(flowScore, bioScore);
             draw();
-            checkStoryTrigger(flowScore, bioScore); // 每次模擬更新後檢查劇情
+            checkStoryTrigger(flowScore, bioScore); 
         }
         
-        // UI 分數更新
+        // UI 分數更新 (與前版相同)
         function updateUI(flow, bio) {
             state.flowPercent = flow;
             state.bioPercent = bio;
@@ -320,27 +420,17 @@
             document.getElementById('bio-text').innerText = bio + "%";
         }
 
-        // 劇情觸發邏輯優化
+        // 劇情觸發邏輯優化 (與前版相同)
         function checkStoryTrigger(flow, bio) {
-            // 初始對話已在 initGame 觸發
-
-            // 第一次清除紅樹林 (流程分數不需很高)
-            // 這裡的觸發條件需要調整，因為 `firstClear` 是根據單次點擊觸發的，
-            // 更好的方式是檢查地圖上的紅樹林數量變化。
-            // 為了簡化，我們可以在 flow 達到一個低門檻時觸發，假設這代表有初步清除。
             if (flow > 5 && !state.milestones.firstClear) {
-                setDialogue('fish', "哎唷！動作挺俐落的嘛。不過別只清這裡，要打通到右邊去！");
+                setDialogue('fish', "哎唷！潮水終於動了一點！快點！這樣還不夠，要打通到右邊去！");
                 state.milestones.firstClear = true;
             }
-
-            // 中期對話
             if (flow > 30 && !state.milestones.halfway) {
-                setDialogue('oyster', "感覺到了！新鮮的海水流進來了，孩子們，張開殼準備吃飯囉！");
+                setDialogue('oyster', "感覺到了！新鮮的海水流進來了，孩子們，張開殼準備吃飯囉！多虧顧問您了。");
                 state.milestones.halfway = true;
             }
-
-            // 最終通關對話
-            if (flow >= 100 && bio >= 100 && !state.milestones.finish) { // 確保 100% 才觸發
+            if (flow >= 100 && bio >= 100 && !state.milestones.finish) { 
                 setDialogue('bird', "哼，這才像話嘛。水通了，魚蝦多了，我也能勉強在這裡落腳了。做得不錯。");
                 state.milestones.finish = true;
                 setTimeout(() => {
@@ -349,9 +439,8 @@
             }
         }
 
-        // 優化後的對話框文字顯示函數
+        // 優化後的對話框文字顯示函數 (防文字疊加 - 與前版相同)
         function setDialogue(charKey, text) {
-            // 清除之前的計時器，避免文字疊加
             if (currentTypeWriterInterval) {
                 clearInterval(currentTypeWriterInterval);
                 currentTypeWriterInterval = null;
@@ -367,17 +456,16 @@
             nameEl.style.color = char.color;
             
             const textEl = document.getElementById('char-text');
-            textEl.innerText = ""; // 確保在開始打字前清空內容
+            textEl.innerText = ""; 
             let i = 0;
 
-            // 儲存新的計時器 ID
             currentTypeWriterInterval = setInterval(() => {
                 if (i < text.length) {
                     textEl.innerText += text.charAt(i);
                     i++;
                 } else {
                     clearInterval(currentTypeWriterInterval);
-                    currentTypeWriterInterval = null; // 清除 ID
+                    currentTypeWriterInterval = null; 
                 }
             }, 30);
         }
